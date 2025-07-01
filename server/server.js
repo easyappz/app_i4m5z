@@ -1,37 +1,58 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
-const apiRoutes = require('./apiRoutes');
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
+const postRoutes = require('./routes/post');
+const messageRoutes = require('./routes/message');
+const notificationRoutes = require('./routes/notification');
+const searchRoutes = require('./routes/search');
 
-// Для работы с express
 const app = express();
 
-app.use('/api', apiRoutes);
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-/**
- * Пример создания и записи данных в базу данных
- */
-const MONGO_URI = process.env.MONGO_URI;
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/search', searchRoutes);
 
-const mongoDb = mongoose.createConnection(MONGO_URI);
+// Health Check Route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-mongoDb
-  .asPromise()
-  .then(() => {
-    console.log('MongoDB connected');
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err);
-  });
+// MongoDB Connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost/social-network';
 
-// const MongoTestSchema = new mongoose.Schema({
-//   value: { type: String, required: true },
-// });
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log('MongoDB connected successfully');
+})
+.catch((err) => {
+  console.error('MongoDB connection error:', err);
+  process.exit(1);
+});
 
-// const MongoModelTest = global.mongoDb.model('Test', MongoTestSchema);
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong on the server!' });
+});
 
-// const newTest = new MongoModelTest({
-//   value: 'test-value',
-// });
-
-// newTest.save();
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
