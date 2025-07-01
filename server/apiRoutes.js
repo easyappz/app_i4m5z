@@ -5,6 +5,7 @@ const User = require('./models/User');
 const Message = require('./models/Message');
 const Post = require('./models/Post');
 const Comment = require('./models/Comment');
+const Notification = require('./models/Notification');
 
 const router = express.Router();
 
@@ -180,6 +181,16 @@ router.post('/messages', authenticateToken, async (req, res) => {
     });
 
     await message.save();
+
+    // Create a notification for the recipient
+    const notification = new Notification({
+      recipient: recipientId,
+      sender: req.user.userId,
+      type: 'message',
+      content: 'You have a new message'
+    });
+    await notification.save();
+
     res.status(201).json(message);
   } catch (error) {
     console.error('Error sending message:', error);
@@ -265,6 +276,17 @@ router.post('/posts/:id/comments', authenticateToken, async (req, res) => {
     post.comments.push(comment._id);
     await post.save();
 
+    // Create a notification for the post author
+    if (post.author.toString() !== req.user.userId.toString()) {
+      const notification = new Notification({
+        recipient: post.author,
+        sender: req.user.userId,
+        type: 'comment',
+        content: 'Someone commented on your post'
+      });
+      await notification.save();
+    }
+
     res.status(201).json(comment);
   } catch (error) {
     console.error('Error adding comment:', error);
@@ -287,10 +309,89 @@ router.post('/posts/:id/like', authenticateToken, async (req, res) => {
     post.likes.push(req.user.userId);
     await post.save();
 
+    // Create a notification for the post author
+    if (post.author.toString() !== req.user.userId.toString()) {
+      const notification = new Notification({
+        recipient: post.author,
+        sender: req.user.userId,
+        type: 'like',
+        content: 'Someone liked your post'
+      });
+      await notification.save();
+    }
+
     res.json({ message: 'Post liked successfully', likes: post.likes.length });
   } catch (error) {
     console.error('Error liking post:', error);
     res.status(500).json({ message: 'Failed to like post' });
+  }
+});
+
+// GET /api/search
+router.get('/search', authenticateToken, async (req, res) => {
+  try {
+    const query = req.query.query;
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    // Search for users by username (case-insensitive)
+    const users = await User.find({
+      username: { $regex: query, $options: 'i' }
+    }).select('username email avatar').limit(10);
+
+    // Search for posts by content (case-insensitive)
+    const posts = await Post.find({
+      content: { $regex: query, $options: 'i' }
+    }).populate('author', 'username avatar').limit(10);
+
+    res.json({ users, posts });
+  } catch (error) {
+    console.error('Error performing search:', error);
+    res.status(500).json({ message: 'Failed to perform search' });
+  }
+});
+
+// GET /api/notifications
+router.get('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ recipient: req.user.userId })
+      .sort({ createdAt: -1 })
+      .populate('sender', 'username avatar')
+      .limit(20);
+
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ message: 'Failed to fetch notifications' });
+  }
+});
+
+// POST /api/notifications
+router.post('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const { recipientId, type, content } = req.body;
+    if (!recipientId || !type || !content) {
+      return res.status(400).json({ message: 'Recipient ID, type, and content are required' });
+    }
+
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.status(404).json({ message: 'Recipient not found' });
+    }
+
+    const notification = new Notification({
+      recipient: recipientId,
+      sender: req.user.userId,
+      type,
+      content
+    });
+
+    await notification.save();
+    res.status(201).json(notification);
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    res.status(500).json({ message: 'Failed to create notification' });
   }
 });
 
