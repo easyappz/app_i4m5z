@@ -24,82 +24,194 @@ api.interceptors.request.use((config) => {
 
 // Auth API methods
 export const login = async (email, password) => {
-  const response = await api.post('/api/auth/login', { email, password });
-  return response.data;
+  try {
+    const response = await api.post('/api/auth/login', { email, password });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Login failed. Please try again.',
+      error: error,
+    };
+  }
 };
 
 export const register = async (username, email, password) => {
-  const response = await api.post('/api/auth/register', { username, email, password });
-  return response.data;
+  try {
+    const response = await api.post('/api/auth/register', { username, email, password });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Registration failed. Please try again.',
+      error: error,
+    };
+  }
 };
 
 // User API methods
 export const getUserProfile = async (userId) => {
-  const response = await api.get(`/api/user/${userId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/api/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to fetch user profile.',
+      error: error,
+    };
+  }
 };
 
 export const updateUserProfile = async (userId, data) => {
-  const response = await api.put(`/api/user/${userId}`, data);
-  return response.data;
+  try {
+    const response = await api.put(`/api/user/${userId}`, data);
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to update user profile.',
+      error: error,
+    };
+  }
 };
 
 export const uploadAvatar = async (userId, formData) => {
-  const response = await api.post(`/api/user/${userId}/avatar`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  return response.data;
+  try {
+    const response = await api.post(`/api/user/${userId}/avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to upload avatar.',
+      error: error,
+    };
+  }
 };
 
 // Posts API methods
 export const createPost = async (content, imageUrl) => {
-  const response = await api.post('/api/posts', { content, imageUrl });
-  return response.data;
+  try {
+    const response = await api.post('/api/posts', { content, imageUrl });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to create post.',
+      error: error,
+    };
+  }
 };
 
 export const getFeed = async () => {
-  const response = await api.get('/api/posts');
-  return response.data;
+  try {
+    const response = await api.get('/api/posts');
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to fetch feed.',
+      error: error,
+    };
+  }
 };
 
 export const likePost = async (postId) => {
-  const response = await api.post(`/api/posts/${postId}/like`);
-  return response.data;
+  try {
+    const response = await api.post(`/api/posts/${postId}/like`);
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to like post.',
+      error: error,
+    };
+  }
 };
 
 export const addComment = async (postId, content) => {
-  const response = await api.post(`/api/posts/${postId}/comments`, { content });
-  return response.data;
+  try {
+    const response = await api.post(`/api/posts/${postId}/comments`, { content });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to add comment.',
+      error: error,
+    };
+  }
 };
 
 // Messages API methods
 export const sendMessage = async (recipientId, content) => {
-  const response = await api.post('/api/messages', { recipientId, content });
-  return response.data;
+  try {
+    const response = await api.post('/api/messages', { recipientId, content });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to send message.',
+      error: error,
+    };
+  }
 };
 
 export const getMessages = async (chatId) => {
-  const response = await api.get(`/api/messages/${chatId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/api/messages/${chatId}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to fetch messages.',
+      error: error,
+    };
+  }
 };
 
 // Search API methods
 export const search = async (query) => {
-  const response = await api.get(`/api/search?query=${encodeURIComponent(query)}`);
-  return response.data;
+  try {
+    const response = await api.get(`/api/search?query=${encodeURIComponent(query)}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to search.',
+      error: error,
+    };
+  }
 };
 
 // Notifications API methods
 export const getNotifications = async () => {
-  const response = await api.get('/api/notifications');
-  return response.data;
+  try {
+    const response = await api.get('/api/notifications');
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to fetch notifications.',
+      error: error,
+    };
+  }
 };
 
 export const createNotification = async (recipientId, type, content) => {
-  const response = await api.post('/api/notifications', { recipientId, type, content });
-  return response.data;
+  try {
+    const response = await api.post('/api/notifications', { recipientId, type, content });
+    return response.data;
+  } catch (error) {
+    throw {
+      status: error.response?.status || 500,
+      message: error.response?.data?.message || 'Failed to create notification.',
+      error: error,
+    };
+  }
 };
 
 export default api;
