@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Message = require('./models/Message');
+const Post = require('./models/Post');
+const Comment = require('./models/Comment');
 
 const router = express.Router();
 
@@ -197,6 +199,98 @@ router.get('/messages/:chatId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ message: 'Failed to fetch messages' });
+  }
+});
+
+// POST /api/posts
+router.post('/posts', authenticateToken, async (req, res) => {
+  try {
+    const { content, imageUrl } = req.body;
+    if (!content) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    const post = new Post({
+      content,
+      imageUrl: imageUrl || '',
+      author: req.user.userId
+    });
+
+    await post.save();
+    res.status(201).json(post);
+  } catch (error) {
+    console.error('Error creating post:', error);
+    res.status(500).json({ message: 'Failed to create post' });
+  }
+});
+
+// GET /api/posts
+router.get('/posts', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.userId);
+    const posts = await Post.find({
+      author: { $in: [...currentUser.friends, req.user.userId] }
+    })
+    .sort({ createdAt: -1 })
+    .populate('author', 'username avatar')
+    .populate('comments');
+
+    res.json(posts);
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ message: 'Failed to fetch posts' });
+  }
+});
+
+// POST /api/posts/:id/comments
+router.post('/posts/:id/comments', authenticateToken, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const comment = new Comment({
+      content,
+      author: req.user.userId,
+      post: req.params.id
+    });
+
+    await comment.save();
+    post.comments.push(comment._id);
+    await post.save();
+
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    res.status(500).json({ message: 'Failed to add comment' });
+  }
+});
+
+// POST /api/posts/:id/like
+router.post('/posts/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    if (post.likes.includes(req.user.userId)) {
+      return res.status(400).json({ message: 'Post already liked' });
+    }
+
+    post.likes.push(req.user.userId);
+    await post.save();
+
+    res.json({ message: 'Post liked successfully', likes: post.likes.length });
+  } catch (error) {
+    console.error('Error liking post:', error);
+    res.status(500).json({ message: 'Failed to like post' });
   }
 });
 
