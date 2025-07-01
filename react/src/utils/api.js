@@ -24,28 +24,32 @@ api.interceptors.request.use((config) => {
 
 // Auth API methods
 export const login = async (email, password) => {
-  const response = await api.post('/api/login', { email, password });
+  const response = await api.post('/api/auth/login', { email, password });
   return response.data;
 };
 
 export const register = async (username, email, password) => {
-  const response = await api.post('/api/register', { username, email, password });
+  const response = await api.post('/api/auth/register', { username, email, password });
   return response.data;
 };
 
 // User API methods
 export const getUserProfile = async (userId) => {
-  const response = await api.get(`/api/profile/${userId}`);
+  const response = await api.get(`/api/user/${userId}`);
   return response.data;
 };
 
-export const updateUserProfile = async (username, email) => {
-  const response = await api.put('/api/profile', { username, email });
+export const updateUserProfile = async (userId, data) => {
+  const response = await api.put(`/api/user/${userId}`, data);
   return response.data;
 };
 
-export const uploadAvatar = async (avatarUrl) => {
-  const response = await api.post('/api/profile/avatar', { avatarUrl });
+export const uploadAvatar = async (userId, formData) => {
+  const response = await api.post(`/api/user/${userId}/avatar`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 
