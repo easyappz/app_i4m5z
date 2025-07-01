@@ -71,4 +71,85 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Middleware for authentication
+const authenticateToken = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ message: 'Authentication token missing' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, 'SECRET_KEY');
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Invalid token:', error);
+    res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+// GET /api/profile/:id
+router.get('/profile/:id', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Failed to fetch user profile' });
+  }
+});
+
+// PUT /api/profile
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    if (!username || !email) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { username, email },
+      { new: true, select: '-password' }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ message: 'Failed to update user profile' });
+  }
+});
+
+// POST /api/profile/avatar
+router.post('/profile/avatar', authenticateToken, async (req, res) => {
+  try {
+    const { avatarUrl } = req.body;
+    if (!avatarUrl) {
+      return res.status(400).json({ message: 'Avatar URL is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { avatar: avatarUrl },
+      { new: true, select: '-password' }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    res.status(500).json({ message: 'Failed to upload avatar' });
+  }
+});
+
 module.exports = router;
