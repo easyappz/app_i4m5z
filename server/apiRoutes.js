@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const Message = require('./models/Message');
 
 const router = express.Router();
 
@@ -149,6 +150,53 @@ router.post('/profile/avatar', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error uploading avatar:', error);
     res.status(500).json({ message: 'Failed to upload avatar' });
+  }
+});
+
+// POST /api/messages
+router.post('/messages', authenticateToken, async (req, res) => {
+  try {
+    const { recipientId, content } = req.body;
+    if (!recipientId || !content) {
+      return res.status(400).json({ message: 'Recipient ID and content are required' });
+    }
+
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.status(404).json({ message: 'Recipient not found' });
+    }
+
+    // Generate a unique chatId based on user IDs
+    const userIds = [req.user.userId, recipientId].sort();
+    const chatId = userIds.join('_');
+
+    const message = new Message({
+      sender: req.user.userId,
+      recipient: recipientId,
+      content,
+      chatId
+    });
+
+    await message.save();
+    res.status(201).json(message);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ message: 'Failed to send message' });
+  }
+});
+
+// GET /api/messages/:chatId
+router.get('/messages/:chatId', authenticateToken, async (req, res) => {
+  try {
+    const messages = await Message.find({ chatId: req.params.chatId })
+      .populate('sender', 'username avatar')
+      .populate('recipient', 'username avatar')
+      .sort({ createdAt: 1 });
+
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Failed to fetch messages' });
   }
 });
 
