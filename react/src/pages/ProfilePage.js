@@ -15,6 +15,7 @@ function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
 
   const currentUserId = localStorage.getItem('userId');
   const isOwnProfile = id === currentUserId;
@@ -23,15 +24,27 @@ function ProfilePage() {
     const fetchProfile = async () => {
       try {
         setLoading(true);
+        setError('');
+        setNotFound(false);
         const data = await getUserProfile(id);
-        setUser(data);
-        setUsername(data.username || '');
-        setBio(data.bio || '');
-        setAvatarPreview(data.profilePicture || '');
+        if (!data || Object.keys(data).length === 0) {
+          setNotFound(true);
+          setUser(null);
+        } else {
+          setUser(data);
+          setUsername(data.username || '');
+          setBio(data.bio || '');
+          setAvatarPreview(data.profilePicture || '');
+        }
         setLoading(false);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        setError('Failed to load profile. Please try again later.');
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        if (err.response && err.response.status === 404) {
+          setNotFound(true);
+          setUser(null);
+        } else {
+          setError('Failed to load profile. Please try again later.');
+        }
         setLoading(false);
       }
     };
@@ -91,10 +104,25 @@ function ProfilePage() {
     );
   }
 
-  if (!user) {
+  if (notFound || !user) {
     return (
       <Box sx={{ maxWidth: 800, margin: 'auto', textAlign: 'center', mt: 5 }}>
-        <Typography variant="h5" color="error">User not found</Typography>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            User not found
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            The user you are looking for does not exist or could not be found.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => window.history.back()}
+            sx={{ mt: 2 }}
+          >
+            Go Back
+          </Button>
+        </Paper>
       </Box>
     );
   }
